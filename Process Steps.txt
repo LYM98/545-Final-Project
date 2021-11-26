@@ -1,0 +1,10 @@
+1) remove all non-english-word tags
+2) remove all numerical tags (or contain numerical terms)
+3) remove all tags containing symbols
+4) remove all tags with only one letter
+5) convert plural tags to singular tags
+6) remove images with less than 5 tags
+7) rename all duplicated image names
+
+Need to complete
+7) convert all tags into binary form
