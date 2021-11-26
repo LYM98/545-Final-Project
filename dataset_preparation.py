@@ -6,6 +6,7 @@ from bs4 import BeautifulSoup
 import enchant
 import csv
 import inflect
+import matplotlib
 
 d = enchant.Dict("en_US")
 f = open('feature.csv', 'w', encoding='UTF8')
