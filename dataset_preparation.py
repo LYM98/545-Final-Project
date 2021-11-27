@@ -1,5 +1,5 @@
 import numpy as np
-# import pandas as pd
+import nltk
 import xml.etree.ElementTree as ET
 import os
 from bs4 import BeautifulSoup
@@ -8,14 +8,15 @@ import csv
 import inflect
 
 
-
 d = enchant.Dict("en_US")
 f = open('feature.csv', 'w', encoding='UTF8')
 p_checker = inflect.engine()
 writer = csv.writer(f)
-Root = "final_dataset/annotation"
-
+Root = "processed_dataset_v1/annotation"
 feature_idx = ['Feature Index']
+
+
+
 for root, dirs, files in os.walk(Root, topdown=True):
    for name in files:
         temp = []
@@ -30,18 +31,22 @@ for root, dirs, files in os.walk(Root, topdown=True):
             if title.get_text():
                 if d.check(title.get_text()):
                     a = str(title.get_text())
-                    if a.isalpha():
+                    if a.isalpha() and len(a)>2:
                         temp_a = p_checker.singular_noun(a)
                         if temp_a != False:
                             a = temp_a
-                        if a not in temp:
-                                temp.append(a)
-                        if a not in feature_idx:
-                                feature_idx.append(a)
+                        ans = nltk.pos_tag([a])
+                        val = ans[0][1]
+                        if(val == 'NN' or val == 'NNS' or val == 'NNPS' or val == 'NNP'):
+                            
+                            if a not in temp:
+                                    temp.append(a)
         infile.close()
-        if (len(temp)>5):
+        if (len(temp)>4):
             writer.writerow(temp)
-  
+            for i in range(1,len(temp)):
+                if temp[i] not in feature_idx:
+                    feature_idx.append(temp[i])
 writer.writerow(feature_idx)
 
 

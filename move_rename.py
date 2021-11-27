@@ -9,7 +9,6 @@ import shutil
 
 
 
-
 # Root = "labelme/Images"
 # Dest_path = "dataset/image"
 # Root = "labelme/Annotations"

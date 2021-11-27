@@ -10,12 +10,11 @@ import shutil
 
 
 
+Root1 = "processed_dataset_v1/annotation"
+Dest_path1 = "processed_dataset_v4/annotation"
 
-Root1 = "processed_dataset_v2/annotation"
-Dest_path1 = "processed_dataset_v3/annotation"
-
-Root2 = "processed_dataset_v2/image"
-Dest_path2 = "processed_dataset_v3/image"
+Root2 = "processed_dataset_v1/image"
+Dest_path2 = "processed_dataset_v4/image"
 
 file = 'feature.csv'
 selected_images = []
