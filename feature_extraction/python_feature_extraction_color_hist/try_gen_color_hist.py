@@ -85,18 +85,67 @@ def combine_all(rgb_hist, hsv_hist, LAB_hist):
     return combined_vector
 
 
-if __name__ == '__main__':
-    print("---- do the demo ---")
+def get_2_lay_out_color_features(img_name):
+    # print("---- do the demo ---")
     img = cv2.imread('demo.jpg')
-    set_num_bins = 12
-    rgb_hist_demo = get_rgb_color_hist(img, set_num_bins)
-    hsv_hist_demo = get_hsv_color_hist(img, set_num_bins)
-    LAB_hist_demo = get_lab_color_hist(img, set_num_bins)
-    combined_vector = combine_all(rgb_hist_demo, hsv_hist_demo, LAB_hist_demo)
-    print("length of the combined vector: ", len(combined_vector))
-    plt.figure()
-    plt.title("combined vector hist")
-    plt.xlabel("index")
-    plt.ylabel("normalized features")
-    plt.plot(combined_vector)
-    plt.show()
+    img_g = np.array_split(img, 3)
+    img_hor_1 = img_g[0]
+    img_hor_2 = img_g[1]
+    img_hor_3 = img_g[2]
+    cv2.imshow('out1', img_hor_1)
+    cv2.imshow('out2', img_hor_2)
+    cv2.imshow('out3', img_hor_3)
+    
+    set_num_bins_whole = 16
+    set_num_bins_hor = 12
+    
+    # get the global layout
+    rgb_hist = get_rgb_color_hist(img, set_num_bins_whole)
+    hsv_hist = get_hsv_color_hist(img, set_num_bins_whole)
+    LAB_hist = get_lab_color_hist(img, set_num_bins_whole)
+    
+    # get the 3x1 layout of rgb
+    rgb_hist_hor = np.zeros([set_num_bins_hor * 3, 3])
+    rgb_hist_hor_1 = get_rgb_color_hist(img_hor_1, set_num_bins_hor)
+    rgb_hist_hor_2 = get_rgb_color_hist(img_hor_2, set_num_bins_hor)
+    rgb_hist_hor_3 = get_rgb_color_hist(img_hor_3, set_num_bins_hor)
+    rgb_hist_hor[:, 0] = rgb_hist_hor_1[:, 0]
+    rgb_hist_hor[:, 1] = rgb_hist_hor_2[:, 0]
+    rgb_hist_hor[:, 2] = rgb_hist_hor_3[:, 0]
+    
+    # get the 3x1 layout of hsv
+    hsv_hist_hor = np.zeros([set_num_bins_hor * 3, 3])
+    hsv_hist_hor_1 = get_hsv_color_hist(img_hor_1, set_num_bins_hor)
+    hsv_hist_hor_2 = get_hsv_color_hist(img_hor_2, set_num_bins_hor)
+    hsv_hist_hor_3 = get_hsv_color_hist(img_hor_3, set_num_bins_hor)
+    hsv_hist_hor[:, 0] = hsv_hist_hor_1[:, 0]
+    hsv_hist_hor[:, 1] = hsv_hist_hor_2[:, 0]
+    hsv_hist_hor[:, 2] = hsv_hist_hor_3[:, 0]
+    
+    # get the 3x1 layout of LAB
+    LAB_hist_hor = np.zeros([set_num_bins_hor * 3, 3])
+    LAB_hist_hor_1 = get_lab_color_hist(img_hor_1, set_num_bins_hor)
+    LAB_hist_hor_2 = get_lab_color_hist(img_hor_2, set_num_bins_hor)
+    LAB_hist_hor_3 = get_lab_color_hist(img_hor_3, set_num_bins_hor)
+    LAB_hist_hor[:, 0] = LAB_hist_hor_1[:, 0]
+    LAB_hist_hor[:, 1] = LAB_hist_hor_2[:, 0]
+    LAB_hist_hor[:, 2] = LAB_hist_hor_3[:, 0]
+    
+    
+    # show the combined vector of global layout
+#    combined_vector = combine_all(rgb_hist, hsv_hist, LAB_hist)
+#    print("length of the combined vector: ", len(combined_vector))
+#    plt.figure()
+#    plt.title("combined vector hist")
+#    plt.xlabel("index")
+#    plt.ylabel("normalized features")
+#    plt.plot(combined_vector)
+#    plt.show()
+    return rgb_hist, rgb_hist_hor, hsv_hist, hsv_hist_hor, LAB_hist, LAB_hist_hor
+    
+
+if __name__ == "__main__":
+    file_name = 'demo.jpg'
+    rgb_hist, rgb_hist_hor, hsv_hist, hsv_hist_hor, LAB_hist, LAB_hist_hor = get_2_lay_out_color_features(file_name)
+    
+    

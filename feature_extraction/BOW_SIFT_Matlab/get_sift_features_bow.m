@@ -8,7 +8,7 @@ using_existing_bow = false;
 if using_existing_bow == false
     fprintf('extracting features...');
     % set the number of centers to use as BOW
-    num_centers = 130;
+    num_centers = 150;
     % set the directory
     files = dir('./images/*.jpg');
 
