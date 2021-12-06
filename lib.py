@@ -62,7 +62,6 @@ def cal_PQ(p=0.5,Y=None):
         P: t*t-dimensional matrix, P = (1 − p)YY^T
         Q: t*t-dimensional matrix,  Q = (1 − p)^2YY^T + p(1 − p)δ(YY^T)      
     '''
-    t = Y.shape[0]
     P = (1-p)*Y@Y.T
     Q = (1-p)**2*Y@Y.T+p*(1-p)*np.diagflat((Y@Y.T).diag())
 
