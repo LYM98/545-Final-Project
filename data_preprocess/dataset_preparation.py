@@ -17,6 +17,10 @@ feature_idx = ['Feature Index']
 
 
 
+
+
+
+
 for root, dirs, files in os.walk(Root, topdown=True):
    for name in files:
         temp = []
@@ -48,6 +52,9 @@ for root, dirs, files in os.walk(Root, topdown=True):
                 if temp[i] not in feature_idx:
                     feature_idx.append(temp[i])
 writer.writerow(feature_idx)
+
+
+f.close()
 
 
 

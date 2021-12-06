@@ -2,8 +2,8 @@ import numpy as np
 import pandas as pd
 import xml.etree.ElementTree as ET
 import os
-from bs4 import BeautifulSoup
-import enchant
+# from bs4 import BeautifulSoup
+# import enchant
 import csv
 import shutil
 
@@ -20,7 +20,8 @@ Dest_path = "dataset/image"
 
 
 
-# rename all files
+# Uncomment to rename all files
+
 # count = 0
 # for root, dirs, files in os.walk(Root, topdown=True):
  
