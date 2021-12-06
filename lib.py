@@ -268,3 +268,15 @@ def reopt(W=None, B=None, X=None, Y=None, p=0.5, lamda=0.1, gamma=0.1, recall=No
         f1_score_new = mean(f1_score_new)
     
     return W_new, B_new
+
+def weight_matrix(Y=None):
+    '''
+    calculate the diagonal weight matrix
+    input:
+        Y: t*n-dimensional matrix, partial tags from n images
+    ouput:
+        diagonal weight matrix
+    '''
+    weight = np.sum(Y==1, axis=1)
+
+    return np.diag(np.diag(weight))
