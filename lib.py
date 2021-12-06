@@ -6,9 +6,20 @@ def main():
     X = np.load(feature_directory)
     Y = np.load(tag_directory)
 
-    from sklearn.model_selection import train_test_split
-    X_train, X_rem, Y_train, Y_rem = train_test_split(X,Y,train_size=0.6)
-    X_valid, X_test, Y_valid, Y_test = train_test_split(X_rem,Y_rem,train_size=0.5)
+    np.random.seed(42)
+    X = X[:, np.random.permutation(X.shape[1])]
+    np.random.seed(42)
+    Y = Y[:, np.random.permutation(Y.shape[1])]
+
+    # split train and test data
+    n = X.shape[1]
+    X_train, X_test = X[:,:int(n*0.8)], X[:,int(n*0.8):]
+    Y_train, Y_test = X[:,:int(n*0.8)], X[:,int(n*0.8):]
+
+    # split train and validation data
+    n = X_train.shape[1]
+    X_train, X_valid = X_train[:,:int(n*0.75)], X_train[:,int(n*0.75):]
+    Y_train, Y_valid = X_train[:,:int(n*0.75)], X_train[:,int(n*0.75):]
 
     # initilize matrix
     d = X_train.shape[0]
