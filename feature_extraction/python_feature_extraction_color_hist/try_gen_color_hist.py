@@ -87,14 +87,15 @@ def combine_all(rgb_hist, hsv_hist, LAB_hist):
 
 def get_2_lay_out_color_features(img_name):
     # print("---- do the demo ---")
-    img = cv2.imread('demo.jpg')
+    img = cv2.imread(img_name)
+    img = cv2.resize(img, (500, 500))
     img_g = np.array_split(img, 3)
     img_hor_1 = img_g[0]
     img_hor_2 = img_g[1]
     img_hor_3 = img_g[2]
-    cv2.imshow('out1', img_hor_1)
-    cv2.imshow('out2', img_hor_2)
-    cv2.imshow('out3', img_hor_3)
+    # cv2.imshow(img_name + 'out1', img_hor_1)
+    # cv2.imshow(img_name + 'out2', img_hor_2)
+    # cv2.imshow(img_name + 'out3', img_hor_3)
     
     set_num_bins_whole = 16
     set_num_bins_hor = 12
@@ -147,5 +148,5 @@ def get_2_lay_out_color_features(img_name):
 if __name__ == "__main__":
     file_name = 'demo.jpg'
     rgb_hist, rgb_hist_hor, hsv_hist, hsv_hist_hor, LAB_hist, LAB_hist_hor = get_2_lay_out_color_features(file_name)
-    
+
     
