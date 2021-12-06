@@ -1,6 +1,14 @@
 import numpy as np
 
 def main():
+    '''
+    the main function of this project
+    no input
+    X: d*n-dimensional matrix, feature extraction from n images
+    Y: t*n-dimensional matrix, tags from n images
+    output: 
+    four evalution of the test data   
+    '''
     feature_directory = ''
     tag_directory = ''
     X = np.load(feature_directory)
