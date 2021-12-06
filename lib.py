@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 
 def main():
     '''
@@ -41,6 +42,10 @@ def main():
     # choose one of these two
     W_new, B_new, total_loss = opt(W, B, X_train, Y_train, p, lamda, gamma)
     W_new, B_new, total_loss = weight_opt(W, B, X_train, Y_train, p, lamda, gamma)
+
+    # plot the loss over iteration
+    plt.plot(total_loss)
+    plt.show()
 
     W_new, B_new = bootstrap(W_new, B_new, X_train, Y_train, p, lamda, gamma, X_valid, Y_valid)
     W_new, B_new = reopt(W_new, B_new, X_train, Y_train, p, lamda, gamma, X_valid, Y_valid)
