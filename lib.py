@@ -280,3 +280,61 @@ def weight_matrix(Y=None):
     weight = np.sum(Y==1, axis=1)
 
     return np.diag(np.diag(weight))
+
+def weight_opt_periter(W=None, B=None, X=None, Y=None, P=None, Q=None, lamda=0.1, gamma=0.1, weight=None):
+    '''
+    calculate updated matrix W, B for one iteration
+    input:
+        W: t*d-dimensional matrix, weights for X
+        B: t*t-dimensional matrix, weights for Y
+        X: d*n-dimensional matrix, features extraction from n images
+        Y: t*n-dimensional matrix, partial tags from n images
+        lamda: regularization factor for W 
+        P: t*t-dimensional matrix
+        Q: t*t-dimensional matrix
+        gamma: regularization factor for B
+        weight: weight matrix
+    ouput:
+        W_new: t*d-dimensional matrix, weights for X, W_new = BYX^T(XX^T + nλI)^−1
+        B_new: t*t-dimensional matrix, weights for Y, B_new = (γP+WXY^T)(γQ + YY^T)^-1
+    '''
+    d = X.shape[0]
+    W_new = B@Y@weight@X.T@np.linalg.inv(X@weight@X.T+n*lamda*np.identity(d))
+    B_new = (gamma*P+W@X@weight@Y.T)@np.linalg.inv(gamma*Q+Y@weight@Y.T)
+
+    return W_new, B_new
+
+def weight_opt(W=None, B=None, X=None, Y=None, p=0.5, lamda=0.1, gamma=0.1):
+    '''
+    optimize the parametersin W, B and return the total loss in each iteration
+    input:
+        W: t*d-dimensional matrix, weights for X
+        B: t*t-dimensional matrix, weights for Y
+        X: d*n-dimensional matrix, features extraction from n images
+        Y: t*n-dimensional matrix, partial tags from n images
+        p: probability of text corruption
+        lamda: regularization factor for W 
+        gamma: regularization factor for B
+    ouput:
+        W_new: t*d-dimensional matrix, weights for X
+        B_new: t*t-dimensional matrix, weights for Y
+        loss list for each iteration
+    '''
+    loss_list = [] 
+    P, Q = cal_PQ(p,Y)
+    weight = weight_matrix(Y)
+    W_new, B_new = weight_opt_periter(W, B, X, Y, P, Q, lamda, gamma, weight)
+    loss_list.append(total_loss(W_new, B_new, X, Y, P, Q, lamda, gamma))
+
+    W_new, B_new = weight_opt_periter(W_new, B_new, X, Y, P, Q, lamda, gamma, weight)
+    loss = total_loss(W_new, B_new, X, Y, P, Q, lamda, gamma)
+    iter_num = 0
+
+    while abs(loss-loss_list[-1])/loss_list[-1] > 0.05 and iter_num < 19: # stop iteration when loss decreases no larger than 5% or times of iteration over 20
+        loss_list.append(loss)
+        W_new, B_new = weight_opt_periter(W_new, B_new, X, Y, P, Q, lamda, gamma, weight)
+        loss = total_loss(W_new, B_new, X, Y, P, Q, lamda, gamma)
+        iter_num += 1
+    loss_list.append(loss)
+
+    return W_new, B_new, loss_list
