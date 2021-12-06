@@ -1,5 +1,33 @@
 import numpy as np
 
+def main():
+    feature_directory = ''
+    tag_directory = ''
+    X = np.load(feature_directory)
+    Y = np.load(tag_directory)
+
+    from sklearn.model_selection import train_test_split
+    X_train, X_rem, Y_train, Y_rem = train_test_split(X,Y,train_size=0.6)
+    X_valid, X_test, Y_valid, Y_test = train_test_split(X_rem,Y_rem,train_size=0.5)
+
+    # initilize matrix
+    d = X_train.shape[0]
+    t = Y_train.shape[0]
+    W = np.zeros((t,d))
+    B = np.zeros((t,t))
+    lamda = 0.1
+    gamma = 0.1
+    p = 0.5
+
+    # choose one of these two
+    W_new, B_new, total_loss = opt(W, B, X_train, Y_train, p, lamda, gamma)
+    W_new, B_new, total_loss = weight_opt(W, B, X_train, Y_train, p, lamda, gamma)
+
+    W_new, B_new = bootstrap(W_new, B_new, X_train, Y_train, p, lamda, gamma, X_valid, Y_valid)
+    W_new, B_new = reopt(W_new, B_new, X_train, Y_train, p, lamda, gamma, X_valid, Y_valid)
+
+    return evalution(W_new, X_test, Y_test)    
+
 def cal_PQ(p=0.5,Y=None):
     '''
     calculate matrix P, Q needed for optimization
@@ -238,7 +266,7 @@ def reopt_periter(W=None, B=None, X=None, Y=None, p=0.5, lamda=0.1, gamma=0.1, X
 
     return W, B
 
-def reopt(W=None, B=None, X=None, Y=None, p=0.5, lamda=0.1, gamma=0.1, recall=None, Xhold=None, Yhold=None):
+def reopt(W=None, B=None, X=None, Y=None, p=0.5, lamda=0.1, gamma=0.1, Xhold=None, Yhold=None):
     '''
     do re-optimization of tags until F1 score does not change over 5% for hold-out set
     input:
