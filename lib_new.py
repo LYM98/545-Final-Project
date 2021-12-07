@@ -229,7 +229,13 @@ def bootstrap_periter(W=None, B=None, X=None, Y=None, p=0.5, lamda=0.1, gamma=0.
         B: t*t-dimensional matrix, weights for Y
         loss list for each iteration
     '''
-    return opt(W, B, X, B@Y, p, lamda, gamma)
+    Y = B@Y;
+    idx_lager_than_1 = (Y > 1)
+    idx_smaller_than_0 = (Y < 0)
+    Y_trucated = Y.copy()
+    Y_trucated[idx_lager_than_1] = 1
+    Y_trucated[idx_smaller_than_0] = 0
+    return opt(W, B, X, Y_trucated, p, lamda, gamma)
 
 def bootstrap(W=None, B=None, X=None, Y=None, p=0.5, lamda=0.1, gamma=0.1, Xhold=None, Yhold=None):
     '''
@@ -282,13 +288,14 @@ def reopt_periter(W=None, B=None, X=None, Y=None, p=0.5, lamda=0.1, gamma=0.1, X
     _, recall, _, _ = evalution(W, Xhold, Yhold)
     threshold = mean(recall)
     index = [i for i, v in enumerate(recall) if v < threshold]
-    W_new, B_new, _ = opt(W[index,:], B[index,:][:,index], X, Y[index,:], p, lamda, gamma)
-
+    # W_new, B_new, _ = opt(W[index,:], B[index,:][:,index], X, Y[index,:], p, lamda, gamma)
+    W_new, B_new, _ = opt(W[index,:], B[index,:], X, Y, p, lamda, gamma)
     W[index,:] = W_new
-    j = 0
-    for i in index:
-        B[i,index] = B_new[j,:]
-        j += 1
+#    j = 0
+#    for i in index:
+#        B[i,index] = B_new[j,:]
+#        j += 1
+    B[index,:] = B_new
 
     return W, B
 
