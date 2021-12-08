@@ -70,8 +70,8 @@ def main():
     W_opt, B_opt, total_loss = opt(W, B, X_train, Y_train, p, lamda, gamma)
     W_weight, B_weight, total_loss = weight_opt(W, B, X_train, Y_train, p, lamda, gamma)
 
-    W_boot, B_boot = bootstrap(W_new, B_new, X_train, Y_train, p, lamda, gamma, X_valid, Y_valid)
-    W_reo, B_reo = reopt(W_new, B_new, X_train, Y_train, p, lamda, gamma, X_valid, Y_valid)
+    W_boot, B_boot = bootstrap(W_opt, B_opt, X_train, Y_train, p, lamda, gamma, X_valid, Y_valid)
+    W_reo, B_reo = reopt(W_opt, B_opt, X_train, Y_train, p, lamda, gamma, X_valid, Y_valid)
 
     return evalution(W_new, X_test, Y_test)    
 
