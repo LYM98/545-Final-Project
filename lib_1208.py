@@ -46,6 +46,7 @@ def main():
     X_mean = np.mean(X_train,axis=1).copy()
     X_std = np.std(X_train,axis=1).copy()
     X_train = (X_train-X_mean[:,None])/X_std[:,None]
+    X_valid = (X_valid-X_mean[:,None])/X_std[:,None]
 
     Y_original = Y_train.copy()
     #randomly corrupt Y_train tags
@@ -62,17 +63,16 @@ def main():
     t = Y_train.shape[0]
     W = np.zeros((t,d))
     B = np.zeros((t,t))
-    lamda = 0.001
-    gamma = 10
+    lamda = 0.1
+    gamma = 1
     p = 0.5
 
     # choose one of these two
     W_opt, B_opt, total_loss = opt(W, B, X_train, Y_train, p, lamda, gamma)
-    W_weight, B_weight, total_loss = weight_opt(W, B, X_train, Y_train, p, lamda, gamma)
-
-    W_boot, B_boot = bootstrap(W_opt, B_opt, X_train, Y_train, p, lamda, gamma, X_valid, Y_valid)
-    W_reo, B_reo = reopt(W_opt, B_opt, X_train, Y_train, p, lamda, gamma, X_valid, Y_valid)
-
+    W_weight, B_weight, total_loss = weight_opt(W_opt, B_opt, X_train, Y_train, p, lamda, gamma)
+    W_reo, B_reo = reopt(W_weight, B_weight, X_train, Y_train, p, lamda, gamma, X_valid, Y_valid)
+    #W_boot, B_boot = bootstrap(W_weight, B_weight, X_train, Y_train, p, lamda, gamma, X_valid, Y_valid)
+    
     return evalution(W_new, X_test, Y_test)    
 
 def cal_PQ(p=0.5,Y=None):
@@ -112,15 +112,18 @@ def opt_periter(W=None, B=None, X=None, Y=None, P=None, Q=None, lamda=0.1, gamma
     n = X.shape[1] 
     
     if opt_type == 'total':
-        W_new = B@Y@X.T@np.linalg.inv(X@X.T+n*lamda*np.identity(d))
-        B_new = (gamma*P+W_new@X@Y.T)@np.linalg.inv(gamma*Q+Y@Y.T) 
+        W_new = B@Y@X.T@np.linalg.pinv(X@X.T+n*lamda*np.identity(d))
+        B_new = (gamma*P+W_new@X@Y.T)@np.linalg.pinv(gamma*Q+Y@Y.T) 
     elif opt_type == 'rare':
         W_old, B_old = W.copy(), B.copy()
-        W_new = B_old[index,:]@Y@X.T@np.linalg.inv(X@X.T+n*lamda*np.identity(d))
-        W[index,:] = W_new
-        B_new = (gamma*P+W@X@Y.T)@np.linalg.inv(gamma*Q+Y@Y.T) 
+        W_new = B_old[index,:]@Y@X.T@np.linalg.pinv(X@X.T+n*lamda*np.identity(d))
+        W_old[index,:] = W_new
+        W_new = W_old
+        B_new = (gamma*P+W_new@X@Y.T)@np.linalg.pinv(gamma*Q+Y@Y.T)
+        B_old[index,:] = B_new[index,:]
+        B_new = B_old
         
-    return W, B_new
+    return W_new, B_new
 
 def total_loss(W=None, B=None, X=None, Y=None, P=None, Q=None, lamda=0.1, gamma=0.1):
     '''
@@ -190,7 +193,7 @@ def opt(W=None, B=None, X=None, Y=None, p=0.5, lamda=0.1, gamma=0.1, opt_type='t
     loss = total_loss(W_new, B_new, X, Y, P, Q, lamda, gamma)
     
     iter_num = 0
-    while abs(loss-loss_list[-1])/loss_list[-1] > 1e-5 and iter_num < 30: 
+    while abs(loss-loss_list[-1])/loss_list[-1] > 1e-3 and iter_num < 30: 
         loss_list.append(loss)
         W_new, B_new = opt_periter(W_new, B_new, X, Y, P, Q, lamda, gamma, opt_type, index)
         loss = total_loss(W_new, B_new, X, Y, P, Q, lamda, gamma)
@@ -306,19 +309,24 @@ def bootstrap(W=None, B=None, X=None, Y=None, p=0.5, lamda=0.1, gamma=0.1, Xhold
         W_new: t*d-dimensional matrix, weights for X
         B_new: t*t-dimensional matrix, weights for Y
     '''
-    _, _, f1_score_old, _ = evalution(W, Xhold, Yhold)
-    f1_score_old = np.mean(f1_score_old)
-
     W_new, B_new, _ = bootstrap_periter(W, B, X, Y, p, lamda, gamma)
+    _, _, f1_score_old, _ = evalution(W_new, Xhold, Yhold)
+    f1_score_old = np.mean(f1_score_old)
+    print('F1: ', f1_score_old)
+    
+    W_new, B_new, _ = bootstrap_periter(W_new, B_new, X, Y, p, lamda, gamma)
     _, _, f1_score_new, _ = evalution(W_new, Xhold, Yhold)
     f1_score_new = np.mean(f1_score_new)
+    print('F1: ', f1_score_new)
     
     iter_num = 0
-    while (f1_score_new - f1_score_old)/f1_score_old > 0.01 and iter_num < 30:
+    while (f1_score_new - f1_score_old)/f1_score_old > 0.001 and iter_num < 30:
         f1_score_old = f1_score_new
         W_new, B_new, _ = bootstrap_periter(W_new, B_new, X, Y, p, lamda, gamma)
         _, _, f1_score_new, _ = evalution(W_new, Xhold, Yhold)
         f1_score_new = np.mean(f1_score_new)
+        print('F1: ', f1_score_new)
+        iter_num += 1
 
     return W_new, B_new
 
@@ -388,11 +396,11 @@ def weight_matrix(Y=None):
     '''
     n_w = np.sum(Y, axis=1)
     t = n_w.shape[0]
-    c_w = np.zeros((t))
+    c_w = np.ones(t)
     for i in range(t):
         if n_w[i] != 0:
             c_w[i] = 1/n_w[i]
-    weight_each_example = Y.T @ c_w.reshape(-1,1)
+    weight_each_example = Y.T@c_w.reshape(-1,1)
 
     return np.diagflat(weight_each_example)
 
@@ -441,9 +449,25 @@ def total_loss_weighted(W=None, B=None, X=None, Y=None, P=None, Q=None, lamda=0.
     main_loss = (1/n*(np.sum((B@Y-W@X)**2, axis=0))@weight_vec)[0]
     W_reg = lamda*np.sum(W**2)
     B_reg = gamma*recon_error(B,Y,P,Q)
+    t_loss = main_loss + W_reg + B_reg
     print('main loss: ', np.round(main_loss,4), 'W loss: ', np.round(W_reg,4), 'B loss', np.round(B_reg,4), 'total_loss: ', np.round(t_loss,4))
-    return  main_loss + W_reg + B_reg
+    
+    return t_loss
 
+def cal_weight_PQ(p=0.5,Y=None,weight=None):
+    '''
+    calculate matrix P, Q needed for optimization
+    input:
+        Y: t*n-dimensional matrix, partial tags from n images
+        p: probability of text corruption
+    output: 
+        P: t*t-dimensional matrix, P = (1 − p)YY^T
+        Q: t*t-dimensional matrix,  Q = (1 − p)^2YY^T + p(1 − p)δ(YY^T)      
+    '''
+    P = (1-p)*Y@weight@Y.T
+    Q = (1-p)**2*Y@weight@Y.T+p*(1-p)*np.diagflat((Y@weight@Y.T).diagonal()) 
+
+    return P,Q
 
 def weight_opt(W=None, B=None, X=None, Y=None, p=0.5, lamda=0.1, gamma=0.1):
     '''
@@ -462,8 +486,9 @@ def weight_opt(W=None, B=None, X=None, Y=None, p=0.5, lamda=0.1, gamma=0.1):
         loss list for each iteration
     '''
     loss_list = [] 
-    P, Q = cal_PQ(p,Y)
     weight = weight_matrix(Y)
+    P, Q = cal_weight_PQ(p,Y,weight)
+    
     W_new, B_new = weight_opt_periter(W, B, X, Y, P, Q, lamda, gamma, weight)
     loss_list.append(total_loss_weighted(W_new, B_new, X, Y, P, Q, lamda, gamma, weight))
     
@@ -471,7 +496,7 @@ def weight_opt(W=None, B=None, X=None, Y=None, p=0.5, lamda=0.1, gamma=0.1):
     loss = total_loss_weighted(W_new, B_new, X, Y, P, Q, lamda, gamma, weight)
     iter_num = 0
 
-    while abs(loss-loss_list[-1])/loss_list[-1] > 0.01 and iter_num < 20: 
+    while abs(loss-loss_list[-1])/loss_list[-1] > 1e-3 and iter_num < 20: 
         loss_list.append(loss)
         W_new, B_new = weight_opt_periter(W_new, B_new, X, Y, P, Q, lamda, gamma, weight)
         loss = total_loss_weighted(W_new, B_new, X, Y, P, Q, lamda, gamma, weight)
