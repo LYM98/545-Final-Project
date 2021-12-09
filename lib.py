@@ -43,11 +43,11 @@ def opt_periter(W=None, B=None, X=None, Y=None, P=None, Q=None, lamda=0.1, gamma
     elif opt_type == 'rare':
         W_old, B_old = W.copy(), B.copy()
         
-        W_new = B@Y@X.T@np.linalg.inv(X@X.T+n*lamda*np.identity(d))
+        W_new = B@Y@X.T@np.linalg.pinv(X@X.T+n*lamda*np.identity(d))
         W_old[index,:] = W_new[index,:]
         W_new = W_old
         
-        B_new = (gamma*P+W_new@X@Y.T)@np.linalg.inv(gamma*Q+Y@Y.T)
+        B_new = (gamma*P+W_new@X@Y.T)@np.linalg.pinv(gamma*Q+Y@Y.T)
         B_old[index,:] = B_new[index,:]
         B_new = B_old
         
@@ -352,8 +352,8 @@ def weight_opt_periter(W=None, B=None, X=None, Y=None, P=None, Q=None, lamda=0.1
     '''
     d = X.shape[0]
     n = X.shape[1] 
-    W_new = B@Y@weight@X.T@np.linalg.inv(X@weight@X.T+n*lamda*np.identity(d))
-    B_new = (gamma*P+W_new@X@weight@Y.T)@np.linalg.inv(gamma*Q+Y@weight@Y.T)
+    W_new = B@Y@weight@X.T@np.linalg.pinv(X@weight@X.T+n*lamda*np.identity(d))
+    B_new = (gamma*P+W_new@X@weight@Y.T)@np.linalg.pinv(gamma*Q+Y@weight@Y.T)
 
     return W_new, B_new
 
