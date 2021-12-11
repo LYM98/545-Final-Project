@@ -1,5 +1,79 @@
 import numpy as np
-import matplotlib.pyplot as plt  
+import matplotlib.pyplot as plt
+
+def main():
+    '''
+    the main function of this project
+    no input
+    X: d*n-dimensional matrix, feature extraction from n images
+    Y: t*n-dimensional matrix, tags from n images
+    output: 
+    four evalution of the test data   
+    '''
+    feature_directory = '/Users/yushanyang/Yushan file/Umich/EECS545/Final Project/Github/combined_feature_all.npy'
+    tag_directory = '/Users/yushanyang/Yushan file/Umich/EECS545/Final Project/Github/binary_feature.npy'
+    X = np.load(feature_directory)
+    Y = np.load(tag_directory)
+    
+    random_state = np.random.RandomState(42)
+    transformer = GaussianRandomProjection(random_state=random_state, eps=0.15)
+    X = transformer.fit_transform(X)
+
+    X = X.T
+    Y = Y.T
+    Y = Y[Y.sum(axis=1) >= 40,:]
+    filt = (Y.sum(axis=0) != 0).copy()
+    Y = Y[:,filt]
+    X = X[:,filt]
+    print(X.shape, Y.shape)
+    
+    np.random.seed(42)
+    X = X[:, np.random.permutation(X.shape[1])]
+    np.random.seed(42)
+    Y = Y[:, np.random.permutation(Y.shape[1])]
+
+    # split train and test data
+    n = X.shape[1]
+    X_train, X_test = X[:,:int(n*0.8)].copy(), X[:,int(n*0.8):].copy()
+    Y_train, Y_test = Y[:,:int(n*0.8)].copy(), Y[:,int(n*0.8):].copy()
+
+    # split train and validation data
+    n = X_train.shape[1]
+    X_train, X_valid = X_train[:,:int(n*0.75)].copy(), X_train[:,int(n*0.75):].copy()
+    Y_train, Y_valid = Y_train[:,:int(n*0.75)].copy(), Y_train[:,int(n*0.75):].copy()
+
+    #normalize training data
+    X_mean = np.mean(X_train,axis=1).copy()
+    X_std = np.std(X_train,axis=1).copy()
+    X_train = (X_train-X_mean[:,None])/X_std[:,None]
+    X_valid = (X_valid-X_mean[:,None])/X_std[:,None]
+
+    Y_original = Y_train.copy()
+    #randomly corrupt Y_train tags
+    cor = 0.5
+    index = [i for i, v in np.ndenumerate(Y_train) if v == 1]
+    np.random.seed(42)
+    for i in range(int(len(index)*cor)):
+        idx, idy = index[np.random.randint(len(index))]
+        Y_original[idx,idy] = 0
+    Y_train, Y_original = Y_original, Y_train
+    
+    # initilize matrix
+    d = X_train.shape[0]
+    t = Y_train.shape[0]
+    W = np.zeros((t,d))
+    B = np.zeros((t,t))
+    lamda = 0.1
+    gamma = 1
+    p = 0.5
+
+    # choose one of these two
+    W_opt, B_opt, total_loss = opt(W, B, X_train, Y_train, p, lamda, gamma)
+    W_weight, B_weight, total_loss = weight_opt(W_opt, B_opt, X_train, Y_train, p, lamda, gamma)
+    W_reo, B_reo = reopt(W_weight, B_weight, X_train, Y_train, p, lamda, gamma, X_valid, Y_valid)
+    #W_boot, B_boot = bootstrap(W_weight, B_weight, X_train, Y_train, p, lamda, gamma, X_valid, Y_valid)
+    
+    return evalution(W_new, X_test, Y_test)    
 
 def cal_PQ(p=0.5,Y=None):
     '''
@@ -42,11 +116,9 @@ def opt_periter(W=None, B=None, X=None, Y=None, P=None, Q=None, lamda=0.1, gamma
         B_new = (gamma*P+W_new@X@Y.T)@np.linalg.pinv(gamma*Q+Y@Y.T) 
     elif opt_type == 'rare':
         W_old, B_old = W.copy(), B.copy()
-        
-        W_new = B@Y@X.T@np.linalg.pinv(X@X.T+n*lamda*np.identity(d))
-        W_old[index,:] = W_new[index,:]
+        W_new = B_old[index,:]@Y@X.T@np.linalg.pinv(X@X.T+n*lamda*np.identity(d))
+        W_old[index,:] = W_new
         W_new = W_old
-        
         B_new = (gamma*P+W_new@X@Y.T)@np.linalg.pinv(gamma*Q+Y@Y.T)
         B_old[index,:] = B_new[index,:]
         B_new = B_old
@@ -130,7 +202,7 @@ def opt(W=None, B=None, X=None, Y=None, p=0.5, lamda=0.1, gamma=0.1, opt_type='t
 
     return W_new, B_new, loss_list
 
-def topN_prediction(W=None, X=None, Y=None, N=5):
+def top5_prediction(W=None, X=None, Y=None):
     '''
     calculate the most five relavent tags for each image
     input:
@@ -141,12 +213,12 @@ def topN_prediction(W=None, X=None, Y=None, N=5):
         top5_index: the index of the most five relavent tags for each image
     '''
     Y_predict = W@X
-    topN_index = np.argsort(Y_predict,axis=0)
-    topN_index = topN_index[-N:,:]
+    top5_index = np.argsort(Y_predict,axis=0)
+    top5_index = top5_index[-5:,:]
 
-    return topN_index
+    return top5_index
     
-def evalution(W=None, X=None, Y=None, N=5):
+def evalution(W=None, X=None, Y=None):
     '''
     calculate precision, recall and F1 score of each tag and number of non-zero recall 
     input:
@@ -159,7 +231,7 @@ def evalution(W=None, X=None, Y=None, N=5):
         f1_score_list: t-dimensional vector, f1_score for each tag
         non_zero_recall: number of non-zero recall
     '''
-    topN_index = topN_prediction(W, X, Y, N)
+    top5_index = top5_prediction(W, X, Y)
     t = W.shape[0]
 
     # initialize the output
@@ -170,7 +242,7 @@ def evalution(W=None, X=None, Y=None, N=5):
 
     for j in range(t):
         true_index = [i for i, v in enumerate(Y[j,:]) if v == 1] 
-        predict_index = [i[1] for i, v in np.ndenumerate(topN_index) if v == j]
+        predict_index = [i[1] for i, v in np.ndenumerate(top5_index) if v == j]
         num_of_tp = len(np.intersect1d(true_index, predict_index))
         
         if len(predict_index) == 0:
@@ -218,7 +290,7 @@ def bootstrap_periter(W=None, B=None, X=None, Y=None, p=0.5, lamda=0.1, gamma=0.
     Y_trucated[idx_lager_than_1] = 1
     Y_trucated[idx_smaller_than_0] = 0
     
-    return weight_opt(W, B, X, Y_trucated, p, lamda, gamma)
+    return opt(W, B, X, Y_trucated, p, lamda, gamma)
 
 def bootstrap(W=None, B=None, X=None, Y=None, p=0.5, lamda=0.1, gamma=0.1, Xhold=None, Yhold=None):
     '''
